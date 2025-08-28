@@ -18,8 +18,7 @@ if "comments" not in st.session_state:
 # --- Users / Credentials ---
 # -----------------------------
 users = {
-    "admin": {"name": "Leon", "password": "LF1"},
-
+    "Leon": {"password": "LF1"},
 }
 
 # -----------------------------
