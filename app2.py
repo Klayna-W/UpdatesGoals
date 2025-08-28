@@ -393,50 +393,62 @@ for region in selected_regions:
     table_height = 60 + 30 * len(region_df)
 
     st.components.v1.html(
-        f"""
-        <style>
+    f"""
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+        }}
+        th, td {{
+            padding: 6px;
+            text-align: center;
+            white-space: nowrap;
+            min-width: 80px; /* smaller for mobile */
+        }}
+
+        /* Freeze first column */
+        th:nth-child(1), td:nth-child(1) {{
+            position: sticky;
+            left: 0;
+            background-color: white;
+            z-index: 4;
+        }}
+        /* Freeze second column */
+        th:nth-child(2), td:nth-child(2) {{
+            position: sticky;
+            left: 80px;
+            background-color: white;
+            z-index: 4;
+        }}
+        /* Freeze headers */
+        thead th {{
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background-color: #1976D2;
+            color: white;
+        }}
+
+        /* Responsive tweaks */
+        @media (max-width: 768px) {{
             table {{
-                border-collapse: collapse;
-                width: 100%;
+                font-size: 11px;
             }}
             th, td {{
-                padding: 6px;
-                text-align: center;
-                min-width: 120px; /* force equal widths */
+                min-width: 60px;
+                padding: 4px;
             }}
-
-            /* Freeze first column */
-            th:nth-child(1), td:nth-child(1) {{
-                position: sticky;
-                left: 0;
-                background-color: white;
-                z-index: 4;
-            }}
-
-            /* Freeze second column */
-            th:nth-child(2), td:nth-child(2) {{
-                position: sticky;
-                left: 120px;
-                background-color: white;
-                z-index: 4;
-            }}
-
-            /* Freeze headers */
-            thead th {{
-                position: sticky;
-                top: 0;
-                z-index: 5;
-                background-color: #1976D2;
-                color: white;
-            }}
-        </style>
-        <div style="overflow-x:auto; max-height:{table_height}px;">
-            {html_table}
-        </div>
-        """,
-        height=table_height + 50,  # Add some buffer so iframe fits whole table
-        scrolling=True
-    )
+            thead tr:first-child {{ display: none; }} /* hide big grouped headers on small screens */
+        }}
+    </style>
+    <div class="responsive-table" style="overflow-x:auto; max-height:{table_height}px;">
+        {html_table}
+    </div>
+    """,
+    height=table_height + 50,
+    scrolling=True
+)
 
 
 
