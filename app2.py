@@ -39,6 +39,8 @@ if not st.session_state.logged_in:
             st.error("Incorrect username or password")
     st.stop()  # 🚨 Nothing else renders (including sidebar!) until logged in
 
+
+
 # -----------------------
 # -----------------------------
 # --- Load Data ---
@@ -47,9 +49,6 @@ employees = pd.read_csv("Employees.csv", parse_dates=["Hire Date"])
 LAE_Metrics = pd.read_csv("NewData.csv", parse_dates=["Date"])
 office_info = pd.read_csv("OfficeInfo.csv")
 underwriting = pd.read_csv("UW.csv", parse_dates=["Date"])
-
-# Remove Irvine
-employees = employees[employees['Office'] != 'Irvine']
 
 # -----------------------------
 # --- Helper Function ---
@@ -65,7 +64,7 @@ working_days_so_far = len(working_days[working_days <= today])
 
 
 
-
+employees = employees[employees['Office'] != 'Irvine']
 # --- Compute summaries for all offices ---
 all_offices = LAE_Metrics['Office'].unique()
 
@@ -210,21 +209,45 @@ formatted_df = summary_df[desired_order]
 # # -----------------------------
 # # --- Display as AgGrid ---
 # # -----------------------------
-st.title("📊 All Offices Dashboard")
-
+st.title("📊 Office Auto Sales - AI")
+st.markdown(f"""
+<div style="font-size:14px; color: #555;">
+    {current_month.start_time.strftime("%m/%d/%y")} – {today.strftime("%m/%d/%y")} | &nbsp;
+    <strong>Worked:</strong> {working_days_so_far} &nbsp;&nbsp;
+    <strong>Left:</strong> {working_days_so_far} &nbsp;&nbsp;
+    <strong>Total:</strong> {total_working_days}
+</div>
+""", unsafe_allow_html=True)
+st.markdown("***")
 # All available regions (excluding the ones you want to skip)
 exclude_regions = ["DMV", "Karina Cano", "Immigration", " "]
 available_regions = [r for r in formatted_df['Regional'].dropna().unique() if r not in exclude_regions]
 
-# Multiselect filter
-selected_regions = st.multiselect(
-    "Select Region(s) to display",
-    options=available_regions,
-    default=available_regions  # show all by default
-)
+# # Multiselect filter
+# selected_regions = st.multiselect(
+#     "Select Region(s) to display",
+#     options=available_regions,
+#     default=available_regions  # show all by default
+# )
 
-# # Regions to exclude
-# exclude_regions = ["DMV", "Karina Cano", "Immigration", " "]
+
+
+# office_managers_df = employees[employees['Position'] == "Office Manager"][['Employee Name', 'Office']]
+# office_managers_df['Label'] = office_managers_df['Employee Name'] + ' - ' + office_managers_df['Office']
+
+with st.sidebar.expander("Select Regionals", expanded=False):
+    selected_regions = st.multiselect("Select Regional", sorted(available_regions) , default=available_regions)
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.session_state.username = ""
+        # st.experimental_rerun()
+
+
+
+
+
+
+
 
 # Get unique regions, drop NaNs
 unique_regions = formatted_df['Regional'].dropna().unique()
