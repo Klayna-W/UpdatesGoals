@@ -8,7 +8,7 @@ st.set_page_config(page_title="Manager Dashboard", layout="wide", initial_sideba
 # --- Session State ---
 # -----------------------------
 if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+    st.session_state.logged_in = True
 if "username" not in st.session_state:
     st.session_state.username = ""
 if "comments" not in st.session_state:
@@ -190,7 +190,7 @@ summary_df = summary_df.merge(UW_Office, on='Office', how='left')
 
 
 desired_order = [
-   'Regional','Manager', "Office",'Agents', "GI Goal", "NB Goal", "GI Projection", "NB Projection","GI","NB",'UW BF','UW NB',
+   'Regional',"Office",'Manager','Agents', "GI Goal", "NB Goal", "GI Projection", "NB Projection","GI","NB",'UW BF','UW NB',
     "GI LM","LM GI Diff", "NB LM","LM NB Diff",'Diff $100K',"Per Day - $100K","Per Agent - $100K",'Diff Goal',"Per Day - Goal","Per Agent - Goal", "GI Monthly Avg",
     "GI Weekly Avg", "GI Daily Avg","NB Monthly Avg","NB Weekly Avg", "NB Daily Avg"]
 formatted_df = summary_df[desired_order]
@@ -414,13 +414,13 @@ for region in selected_regions:
             background-color: white;
             z-index: 4;
         }}
-        /* Freeze second column */
-        th:nth-child(2), td:nth-child(2) {{
-            position: sticky;
-            left: 80px;
-            background-color: white;
-            z-index: 4;
-        }}
+        # /* Freeze second column */
+        # th:nth-child(2), td:nth-child(2) {{
+        #     position: sticky;
+        #     left: 80px;
+        #     background-color: white;
+        #     z-index: 4;
+        # }}
         /* Freeze headers */
         thead th {{
             position: sticky;
@@ -437,9 +437,12 @@ for region in selected_regions:
             }}
             th, td {{
                 min-width: 60px;
-                padding: 4px;
+                padding: 4px; 
             }}
-            thead tr:first-child {{ display: none; }} /* hide big grouped headers on small screens */
+            thead tr:first-child {{font-size: 8px;
+        padding: 1px 2px;
+ 
+    }} /* hide big grouped headers on small screens */
         }}
     </style>
     <div class="responsive-table" style="overflow-x:auto; max-height:{table_height}px;">
