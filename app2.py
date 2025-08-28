@@ -8,7 +8,7 @@ st.set_page_config(page_title="Manager Dashboard", layout="wide", initial_sideba
 # --- Session State ---
 # -----------------------------
 if "logged_in" not in st.session_state:
-    st.session_state.logged_in = True
+    st.session_state.logged_in = False
 if "username" not in st.session_state:
     st.session_state.username = ""
 if "comments" not in st.session_state:
@@ -130,12 +130,14 @@ def compute_office_summary_simple(office):
     last3_avg_GI_daily = last3_data.groupby('Date')['GI'].sum().mean()
     last3_avg_NB_daily = last3_data.groupby('Date')['NB'].sum().mean()
 
-
     LMDIff_GI = GI_projection-last_month_GI
     LMDIff_NB = NB_projection-last_month_NB
 
     DIff_GI_100K = current_GI- 100_000
-    DIff_GI_100K_Day = DIff_GI_100K/(total_working_days-working_days_so_far)
+    #3 Month AVg Diff
+    DIff_GI_100K_Avg = last3_avg_GI- 100_000
+    DIff_GI_100K_AvgWeekly = DIff_GI_100K_Avg/4
+    DIff_GI_100K_AvgDaily = DIff_GI_100K_Avg/(total_working_days)
 
 
     return {
@@ -147,11 +149,12 @@ def compute_office_summary_simple(office):
         "GI LM": last_month_GI,
         "LM GI Diff": LMDIff_GI,
         "NB LM": last_month_NB,
-        "LM NB Diff": LMDIff_NB, "Diff $100K": DIff_GI_100K,"Per Day - $100K": DIff_GI_100K_Day,
+        "LM NB Diff": LMDIff_NB, "Diff $100K": DIff_GI_100K,"Per Day - $100K": DIff_GI_100K,
         "GI Monthly Avg": last3_avg_GI,
         "NB Monthly Avg": last3_avg_NB, "GI Weekly Avg": last3_avg_GI_weekly,
         "NB Weekly Avg": last3_avg_NB_weekly, "GI Daily Avg": last3_avg_GI_daily,
         "NB Daily Avg": last3_avg_NB_daily, 
+        "Diff $100K - Month": DIff_GI_100K_Avg,"Diff $100K - Week": DIff_GI_100K_AvgWeekly,"Diff $100K - Day": DIff_GI_100K_AvgDaily,
     }
 
 
@@ -185,6 +188,13 @@ summary_df['Per Day - Goal'] = summary_df['Diff Goal']/(total_working_days-worki
 summary_df['Per Agent - Goal'] = summary_df['Per Day - Goal'] / summary_df['Agents']
 
 
+#3 Month AVg Diff
+summary_df['Diff Goal - Month'] = summary_df['GI Monthly Avg']- summary_df['GI Goal']
+summary_df['Diff Goal - Week'] = summary_df['Diff Goal - Month']/4
+summary_df['Diff Goal - Day'] = summary_df['Diff Goal - Month']/(total_working_days)
+
+
+
 UW_Office = (underwriting.groupby("Office")[["UW BF", "UW NB"]].sum())
 summary_df = summary_df.merge(UW_Office, on='Office', how='left')
 
@@ -192,7 +202,8 @@ summary_df = summary_df.merge(UW_Office, on='Office', how='left')
 desired_order = [
    'Regional',"Office",'Manager','Agents', "GI Goal", "NB Goal", "GI Projection", "NB Projection","GI","NB",'UW BF','UW NB',
     "GI LM","LM GI Diff", "NB LM","LM NB Diff",'Diff $100K',"Per Day - $100K","Per Agent - $100K",'Diff Goal',"Per Day - Goal","Per Agent - Goal", "GI Monthly Avg",
-    "GI Weekly Avg", "GI Daily Avg","NB Monthly Avg","NB Weekly Avg", "NB Daily Avg"]
+    "GI Weekly Avg", "GI Daily Avg","Diff $100K - Month","Diff $100K - Week","Diff $100K - Day",'Diff Goal - Month','Diff Goal - Week','Diff Goal - Day',
+    "NB Monthly Avg","NB Weekly Avg", "NB Daily Avg"]#"NB Weekly Avg", "NB Daily Avg"
 formatted_df = summary_df[desired_order]
 
 
@@ -274,39 +285,35 @@ for region in selected_regions:
         style_vs_goal, axis=1, metric='NB Projection', goal_col='NB Goal', threshold=10
     )
 
-    negative_cols = ['LM GI Diff', 'LM NB Diff','Diff $100K','Per Day - $100K','Per Agent - $100K','Diff Goal','Per Day - Goal','Per Agent - Goal']  # add more if needed
+    negative_cols = ['LM GI Diff', 'LM NB Diff','Diff $100K','Per Day - $100K','Per Agent - $100K','Diff Goal','Per Day - Goal',
+                     'Per Agent - Goal','Diff $100K - Month','Diff $100K - Week','Diff $100K - Day','Diff Goal - Month',
+                     'Diff Goal - Week','Diff Goal - Day']  # add more if needed
 
     for col in negative_cols:
         styled_region_df = styled_region_df.apply(style_negative, axis=1, metric=col)
 
+    def format_currency(x):
+        return f"${x:,.0f}" if isinstance(x, (int, float)) else x
+
+    def format_number(x):
+        return f"{x:,.0f}" if isinstance(x, (int, float)) else x
+
     # --- General styling ---
-    styled_region_df = styled_region_df.format({
-        'GI Projection': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'GI': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'GI LM': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'GI Monthly Avg': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'GI Weekly Avg': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'GI Daily Avg': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'GI Goal': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'LM GI Diff': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'Diff $100K': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'Diff Goal': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'Per Day - Goal': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'Per Agent - Goal': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'Per Day - $100K': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'Per Agent - $100K': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'UW BF': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
+    currency_cols = [
+    'GI Projection', 'GI', 'GI LM', 'GI Monthly Avg', 'GI Weekly Avg', 'GI Daily Avg',
+    'GI Goal', 'LM GI Diff', 'Diff $100K', 'Diff Goal', 'Per Day - Goal', 
+    'Per Agent - Goal', 'Per Day - $100K', 'Per Agent - $100K', 'UW BF','Diff $100K - Month','Diff $100K - Week',
+    'Diff $100K - Day','Diff Goal - Month','Diff Goal - Week','Diff Goal - Day'
+    ]
 
-
-        'UW NB': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
-        'LM NB Diff': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
-        'NB Monthly Avg': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
-          'NB Daily Avg': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
-            'NB Weekly Avg': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
-        'NB Projection': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
-        'NB Goal': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
-        'Agents': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x
-    }).set_table_styles([
+    number_cols = [
+        'UW NB', 'LM NB Diff', 'NB Monthly Avg', 'NB Daily Avg', 'NB Weekly Avg',
+        'NB Projection', 'NB Goal', 'Agents'
+    ]
+    styled_region_df = styled_region_df.format(
+    {col: format_currency for col in currency_cols} |
+    {col: format_number for col in number_cols}
+    ).set_table_styles([
         {'selector': 'th', 'props': [
             ('background-color', "#3583D2"),
             ('color', 'white'),
@@ -377,8 +384,12 @@ for region in selected_regions:
        color:white; font-weight:bold; border:1px solid #1565C0;">Last Month</th>
     <th colspan="6" style="background-color:#00438A;
     color:white; font-weight:bold; border:1px solid #1565C0;">$ Need per Day Left to Reach Goals</th>
+    <th colspan="3" style="background-color:#00438A;
+    color:white; font-weight:bold; border:1px solid #1565C0;">3 Month GI Average</th>
     <th colspan="6" style="background-color:#00438A;
-    color:white; font-weight:bold; border:1px solid #1565C0;">3 Month Average</th>
+    color:white; font-weight:bold; border:1px solid #1565C0;">Reaching GI Goal based on Average |  $100K & Office</th>
+   <th colspan="3" style="background-color:#00438A;
+    color:white; font-weight:bold; border:1px solid #1565C0;">3 Month NB Average</th>
   
 </tr>
 </thead>
