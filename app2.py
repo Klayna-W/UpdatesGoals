@@ -8,7 +8,7 @@ st.set_page_config(page_title="Manager Dashboard", layout="wide", initial_sideba
 # --- Session State ---
 # -----------------------------
 if "logged_in" not in st.session_state:
-    st.session_state.logged_in = True
+    st.session_state.logged_in = False
 if "username" not in st.session_state:
     st.session_state.username = ""
 if "comments" not in st.session_state:
