@@ -4,6 +4,43 @@ from st_aggrid import AgGrid, GridOptionsBuilder, AgGridTheme
 
 st.set_page_config(page_title="Manager Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
+
+# --- Session State ---
+# -----------------------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = True
+if "username" not in st.session_state:
+    st.session_state.username = ""
+if "comments" not in st.session_state:
+    st.session_state.comments = {}
+
+# -----------------------------
+# --- Users / Credentials ---
+# -----------------------------
+users = {
+    "admin": {"name": "Leon", "password": "LF1"},
+
+}
+
+# -----------------------------
+# --- Login ---
+# -----------------------------
+if not st.session_state.logged_in:
+    st.title("🔒 Manager Dashboard Login")
+    username_input = st.text_input("Username")
+    password_input = st.text_input("Password", type="password")
+    login = st.button("Login")
+
+    if login:
+        if username_input in users and password_input == users[username_input]["password"]:
+            st.session_state.logged_in = True
+            st.session_state.username = username_input
+            # st.experimental_rerun()
+        else:
+            st.error("Incorrect username or password")
+    st.stop()  # 🚨 Nothing else renders (including sidebar!) until logged in
+
+# -----------------------
 # -----------------------------
 # --- Load Data ---
 # -----------------------------
