@@ -10,6 +10,7 @@ st.set_page_config(page_title="Manager Dashboard", layout="wide", initial_sideba
 employees = pd.read_csv("Employees.csv", parse_dates=["Hire Date"])
 LAE_Metrics = pd.read_csv("NewData.csv", parse_dates=["Date"])
 office_info = pd.read_csv("OfficeInfo.csv")
+underwriting = pd.read_csv("UW.csv", parse_dates=["Date"])
 
 # Remove Irvine
 employees = employees[employees['Office'] != 'Irvine']
@@ -76,10 +77,23 @@ def compute_office_summary_simple(office):
     last_month_NB = last_month_data['NB'].sum()
 
     # Last 3 months avg (excluding current month)
+
     last3_months = pd.period_range(end=last_month, periods=3, freq="M")
     last3_data = LAE_filtered[LAE_filtered['MonthD'].isin(last3_months)]
-    last3_avg_GI = (last3_data.groupby('MonthD')['GI'].sum().mean())
-    last3_avg_NB = (last3_data.groupby('MonthD')['NB'].sum().mean())
+
+    # --- Monthly Average ---
+    last3_avg_GI = last3_data.groupby('MonthD')['GI'].sum().mean()
+    last3_avg_NB = last3_data.groupby('MonthD')['NB'].sum().mean()
+
+    # --- Weekly Average ---
+    last3_data['Week'] = last3_data['Date'].dt.to_period('W')
+    last3_avg_GI_weekly = last3_data.groupby('Week')['GI'].sum().mean()
+    last3_avg_NB_weekly = last3_data.groupby('Week')['NB'].sum().mean()
+
+    # --- Daily Average ---
+    last3_avg_GI_daily = last3_data.groupby('Date')['GI'].sum().mean()
+    last3_avg_NB_daily = last3_data.groupby('Date')['NB'].sum().mean()
+
 
     LMDIff_GI = GI_projection-last_month_GI
     LMDIff_NB = NB_projection-last_month_NB
@@ -98,8 +112,10 @@ def compute_office_summary_simple(office):
         "LM GI Diff": LMDIff_GI,
         "NB LM": last_month_NB,
         "LM NB Diff": LMDIff_NB, "Diff $100K": DIff_GI_100K,"Per Day - $100K": DIff_GI_100K_Day,
-        "GI 3M Avg": last3_avg_GI,
-        "NB 3M Avg": last3_avg_NB, 
+        "GI Monthly Avg": last3_avg_GI,
+        "NB Monthly Avg": last3_avg_NB, "GI Weekly Avg": last3_avg_GI_weekly,
+        "NB Weekly Avg": last3_avg_NB_weekly, "GI Daily Avg": last3_avg_GI_daily,
+        "NB Daily Avg": last3_avg_NB_daily, 
     }
 
 
@@ -132,10 +148,15 @@ summary_df['Diff Goal'] = summary_df['GI']- summary_df['GI Goal']
 summary_df['Per Day - Goal'] = summary_df['Diff Goal']/(total_working_days-working_days_so_far)
 summary_df['Per Agent - Goal'] = summary_df['Per Day - Goal'] / summary_df['Agents']
 
+
+UW_Office = (underwriting.groupby("Office")[["UW BF", "UW NB"]].sum())
+summary_df = summary_df.merge(UW_Office, on='Office', how='left')
+
+
 desired_order = [
-   'Regional','Manager', "Office",'Agents', "GI Goal", "NB Goal", "GI Projection", "NB Projection","GI","NB",
-    "GI LM","LM GI Diff", "NB LM","LM NB Diff",'Diff $100K',"Per Day - $100K","Per Agent - $100K",'Diff Goal',"Per Day - Goal","Per Agent - Goal", "GI 3M Avg", "NB 3M Avg",
-]
+   'Regional','Manager', "Office",'Agents', "GI Goal", "NB Goal", "GI Projection", "NB Projection","GI","NB",'UW BF','UW NB',
+    "GI LM","LM GI Diff", "NB LM","LM NB Diff",'Diff $100K',"Per Day - $100K","Per Agent - $100K",'Diff Goal',"Per Day - Goal","Per Agent - Goal", "GI Monthly Avg",
+    "GI Weekly Avg", "GI Daily Avg","NB Monthly Avg","NB Weekly Avg", "NB Daily Avg"]
 formatted_df = summary_df[desired_order]
 
 
@@ -227,7 +248,9 @@ for region in selected_regions:
         'GI Projection': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
         'GI': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
         'GI LM': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
-        'GI 3M Avg': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
+        'GI Monthly Avg': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
+        'GI Weekly Avg': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
+        'GI Daily Avg': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
         'GI Goal': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
         'LM GI Diff': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
         'Diff $100K': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
@@ -236,11 +259,14 @@ for region in selected_regions:
         'Per Agent - Goal': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
         'Per Day - $100K': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
         'Per Agent - $100K': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
+        'UW BF': lambda x: f"${x:,.0f}" if isinstance(x, (int,float)) else x,
 
 
-
+        'UW NB': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
         'LM NB Diff': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
-        'NB 3M Avg': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
+        'NB Monthly Avg': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
+          'NB Daily Avg': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
+            'NB Weekly Avg': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
         'NB Projection': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
         'NB Goal': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x,
         'Agents': lambda x: f"{x:,.0f}" if isinstance(x, (int,float)) else x
@@ -309,12 +335,17 @@ for region in selected_regions:
        color:white; font-weight:bold; border:1px solid #1565C0;">Projections</th>
     <th colspan="2" style="background-color:#00438A;
        color:white; font-weight:bold; border:1px solid #1565C0;">Totals</th>
+         <th colspan="2" style="background-color:#00438A;
+       color:white; font-weight:bold; border:1px solid #1565C0;"> Month Underwriting</th>
     <th colspan="4" style="background-color:#00438A;
        color:white; font-weight:bold; border:1px solid #1565C0;">Last Month</th>
     <th colspan="6" style="background-color:#00438A;
     color:white; font-weight:bold; border:1px solid #1565C0;">$ Need per Day Left to Reach Goals</th>
-    </tr>
-    </thead>
+    <th colspan="6" style="background-color:#00438A;
+    color:white; font-weight:bold; border:1px solid #1565C0;">3 Month Average</th>
+  
+</tr>
+</thead>
 """
 
     # Place right after <thead>
